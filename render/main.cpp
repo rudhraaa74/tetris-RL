@@ -8,12 +8,36 @@ using namespace tetris;
 void DrawNESBlock(int x, int y, Tetromino t) {
     Color light = WHITE;
     Color fill, shadow;
-    if (t == Tetromino::J || t == Tetromino::O || t == Tetromino::I) {
-        fill = {0, 112, 236, 255};
-        shadow = {0, 0, 168, 255};
-    } else {
-        fill = {216, 40, 0, 255};
-        shadow = {136, 20, 0, 255};
+    
+    switch (t) {
+        case Tetromino::T: 
+            fill = {160, 32, 240, 255}; // Purple
+            shadow = {100, 20, 150, 255}; 
+            break;
+        case Tetromino::J: 
+            fill = {0, 112, 236, 255}; // Blue
+            shadow = {0, 0, 168, 255}; 
+            break;
+        case Tetromino::Z: 
+            fill = {216, 40, 0, 255}; // Red
+            shadow = {136, 20, 0, 255}; 
+            break;
+        case Tetromino::O: 
+            fill = {255, 200, 0, 255}; // Yellow
+            shadow = {180, 140, 0, 255}; 
+            break;
+        case Tetromino::S: 
+            fill = {0, 168, 0, 255}; // Green
+            shadow = {0, 100, 0, 255}; 
+            break;
+        case Tetromino::L: 
+            fill = {255, 120, 0, 255}; // Orange
+            shadow = {180, 80, 0, 255}; 
+            break;
+        case Tetromino::I: 
+            fill = {0, 232, 216, 255}; // Cyan
+            shadow = {0, 160, 140, 255}; 
+            break;
     }
     
     // 8x8 Block
