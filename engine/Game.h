@@ -5,6 +5,7 @@
 #include "Timing.h"
 #include "Scoring.h"
 #include <memory>
+#include <array>
 
 namespace tetris {
 
@@ -38,6 +39,7 @@ public:
     int getScore() const { return m_score; }
     int getLevel() const { return m_level; }
     int getLines() const { return m_lines; }
+    const std::array<int, 7>& getPieceStats() const { return m_pieceStats; }
     
     const Board& getBoard() const { return m_board; }
     const Piece* getPiece() const { return m_currentPiece.get(); } // Returns nullptr during ARE/LINE_CLEARING
@@ -66,6 +68,9 @@ private:
     int m_lines;
     int m_score;
 
+    std::array<int, 7> m_pieceStats{};
+
+    // We can pull these from scoring namespace, but let's cache levelTimer;
     int m_fallTimer;
     int m_dasTimer;
     Input m_lastDasInput;

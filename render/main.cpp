@@ -1,29 +1,67 @@
 #include "raylib.h"
 #include "../engine/Game.h"
 #include <string>
+#include <cstdio>
 
 using namespace tetris;
 
-const int CELL_SIZE = 30;
-const int BOARD_X = 50;
-const int BOARD_Y = 50;
-
-Color getColor(Tetromino type) {
-    switch (type) {
-        case Tetromino::T: return MAGENTA;
-        case Tetromino::J: return BLUE;
-        case Tetromino::Z: return RED;
-        case Tetromino::O: return YELLOW;
-        case Tetromino::S: return GREEN;
-        case Tetromino::L: return ORANGE;
-        case Tetromino::I: return SKYBLUE;
+void DrawNESBlock(int x, int y, Tetromino t) {
+    Color light = WHITE;
+    Color fill, shadow;
+    if (t == Tetromino::T || t == Tetromino::J || t == Tetromino::O || t == Tetromino::I) {
+        fill = {0, 112, 236, 255};
+        shadow = {0, 0, 168, 255};
+    } else {
+        fill = {216, 40, 0, 255};
+        shadow = {136, 20, 0, 255};
     }
-    return WHITE;
+    
+    // 8x8 Block
+    DrawRectangle(x, y, 8, 8, BLACK);
+    DrawRectangle(x, y, 7, 7, light);
+    DrawRectangle(x+1, y+1, 6, 6, shadow);
+    DrawRectangle(x+1, y+1, 5, 5, fill);
+}
+
+void DrawNESPiece(int x, int y, Tetromino type) {
+    Piece p(type);
+    auto blocks = p.getBlocks();
+    for (auto pt : blocks) {
+        // Offset by piece center
+        DrawNESBlock(x + pt.x * 8, y + pt.y * 8, type);
+    }
+}
+
+void DrawUIBox(int x, int y, int w, int h) {
+    DrawRectangle(x, y, w, h, BLACK);
+    Color cyan = {0, 232, 216, 255};
+    DrawRectangleLines(x, y, w, h, cyan);
+    DrawRectangleLines(x+2, y+2, w-4, h-4, WHITE);
+}
+
+void DrawBackground() {
+    ClearBackground(BLACK);
+    Color darkGray = {80, 80, 80, 255};
+    Color lightGray = {120, 120, 120, 255};
+    for(int y = 0; y < 240; y += 8) {
+        for(int x = 0; x < 256; x += 8) {
+            if ((x/8 + y/8) % 2 == 0) {
+                DrawRectangle(x+1, y+1, 6, 6, darkGray);
+                DrawRectangle(x+2, y+2, 4, 4, lightGray);
+            }
+        }
+    }
 }
 
 int main() {
-    InitWindow(800, 800, "NES Tetris");
+    // 3x scale of 256x240
+    InitWindow(768, 720, "NES Tetris");
     SetTargetFPS(60);
+
+    RenderTexture2D target = LoadRenderTexture(256, 240);
+    SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+
+    Font font = LoadFontEx("assets/PressStart2P-Regular.ttf", 8, 0, 250);
 
     int currentStartLevel = 0;
     Game game(42, currentStartLevel);
@@ -31,7 +69,6 @@ int main() {
     while (!WindowShouldClose()) {
         Input input = Input::NONE;
         
-        // Change level and restart
         if (IsKeyPressed(KEY_EQUAL)) {
             currentStartLevel++;
             game = Game(42, currentStartLevel);
@@ -50,77 +87,98 @@ int main() {
 
         game.tick(input);
 
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
+        BeginTextureMode(target);
+        DrawBackground();
 
-        // Draw Board
+        // 1. Playfield Box
+        DrawUIBox(92, 36, 88, 168);
+        DrawRectangle(96, 40, 80, 160, BLACK); // Playfield background
+
         const auto& grid = game.getBoard().getGrid();
         for (int y = 2; y < Board::HEIGHT; ++y) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 int cell = grid[y][x];
-                Rectangle rect = { (float)(BOARD_X + x * CELL_SIZE), (float)(BOARD_Y + (y - 2) * CELL_SIZE), (float)CELL_SIZE, (float)CELL_SIZE };
-                
                 if (cell > 0) {
-                    DrawRectangleRec(rect, getColor(static_cast<Tetromino>(cell - 1)));
-                    DrawRectangleLinesEx(rect, 1, BLACK);
-                } else {
-                    DrawRectangleLinesEx(rect, 1, LIGHTGRAY);
+                    DrawNESBlock(96 + x * 8, 40 + (y - 2) * 8, static_cast<Tetromino>(cell - 1));
                 }
             }
         }
 
-        // Draw Piece
         if (const Piece* p = game.getPiece()) {
             auto blocks = p->getBlocks();
             for (auto pt : blocks) {
                 if (pt.y >= 2) {
-                    Rectangle rect = { (float)(BOARD_X + pt.x * CELL_SIZE), (float)(BOARD_Y + (pt.y - 2) * CELL_SIZE), (float)CELL_SIZE, (float)CELL_SIZE };
-                    DrawRectangleRec(rect, getColor(p->getType()));
-                    DrawRectangleLinesEx(rect, 1, BLACK);
+                    DrawNESBlock(96 + pt.x * 8, 40 + (pt.y - 2) * 8, p->getType());
                 }
             }
         }
 
-        // Draw Next Piece
-        Tetromino nextType = game.getNextPiece();
-        DrawText("Next:", 400, 50, 20, BLACK);
-        Piece nextP(nextType);
-        auto nextBlocks = nextP.getBlocks();
-        for (auto pt : nextBlocks) {
-            // Shift it to display area (e.g. x=14, y=2)
-            Rectangle rect = { (float)(400 + (pt.x - 3) * CELL_SIZE), (float)(80 + pt.y * CELL_SIZE), (float)CELL_SIZE, (float)CELL_SIZE };
-            DrawRectangleRec(rect, getColor(nextType));
-            DrawRectangleLinesEx(rect, 1, BLACK);
-        }
+        // 2. A-TYPE Box
+        DrawUIBox(8, 16, 72, 24);
+        DrawTextEx(font, "A-TYPE", {12, 24}, 8, 0, WHITE);
 
-        // Draw Stats
-        DrawText(TextFormat("Level: %d", game.getLevel()), 400, 160, 20, BLACK);
-        DrawText(TextFormat("Lines: %d", game.getLines()), 400, 190, 20, BLACK);
-        DrawText(TextFormat("Score: %d", game.getScore()), 400, 220, 20, BLACK);
+        // 3. LINES Box
+        DrawUIBox(92, 8, 88, 24);
+        char linesText[32];
+        snprintf(linesText, sizeof(linesText), "LINES-%03d", game.getLines());
+        DrawTextEx(font, linesText, {100, 16}, 8, 0, WHITE);
 
-        const char* stateStr = "";
-
-        switch (game.getState()) {
-            case GameState::SPAWNING: stateStr = "SPAWNING"; break;
-            case GameState::FALLING: stateStr = "FALLING"; break;
-            case GameState::LOCKING: stateStr = "LOCKING"; break;
-            case GameState::LINE_CLEARING: stateStr = "LINE_CLEARING"; break;
-            case GameState::ARE: stateStr = "ARE"; break;
-            case GameState::GAME_OVER: stateStr = "GAME_OVER"; break;
-        }
-        DrawText(TextFormat("State: %s", stateStr), 400, 250, 20, RED);
+        // 4. STATISTICS Box
+        DrawUIBox(4, 60, 84, 156);
+        DrawTextEx(font, "STATISTICS", {8, 68}, 8, 0, WHITE);
         
-        DrawText("Controls:", 400, 310, 20, DARKGRAY);
-        DrawText("Left/Right: Move", 400, 340, 20, DARKGRAY);
-        DrawText("Up/X: Rotate CW", 400, 370, 20, DARKGRAY);
-        DrawText("Z: Rotate CCW", 400, 400, 20, DARKGRAY);
-        DrawText("Down: Soft Drop", 400, 430, 20, DARKGRAY);
-        DrawText("+ / - : Change Level & Restart", 400, 460, 20, BLUE);
+        auto stats = game.getPieceStats();
+        Tetromino types[7] = { Tetromino::T, Tetromino::J, Tetromino::Z, Tetromino::O, Tetromino::S, Tetromino::L, Tetromino::I };
+        for (int i=0; i<7; ++i) {
+            DrawNESPiece(16 - 3*8, 88 + i * 16 - 2*8, types[i]); // Offset piece internally uses 3,2 roughly. We want it positioned cleanly.
+            char countStr[8];
+            snprintf(countStr, sizeof(countStr), "%03d", stats[static_cast<int>(types[i])]);
+            DrawTextEx(font, countStr, {48, 92 + (float)i * 16}, 8, 0, RED);
+        }
 
+        // 5. SCORE Box
+        DrawUIBox(188, 16, 64, 56);
+        DrawTextEx(font, "TOP", {192, 24}, 8, 0, WHITE);
+        DrawTextEx(font, "010000", {192, 36}, 8, 0, WHITE);
+        DrawTextEx(font, "SCORE", {192, 48}, 8, 0, WHITE);
+        char scoreStr[16];
+        snprintf(scoreStr, sizeof(scoreStr), "%06d", game.getScore());
+        DrawTextEx(font, scoreStr, {192, 60}, 8, 0, WHITE);
 
+        // 6. NEXT Box
+        DrawUIBox(188, 104, 48, 48);
+        DrawTextEx(font, "NEXT", {196, 112}, 8, 0, WHITE);
+        // Next piece is drawn centered
+        Tetromino nextType = game.getNextPiece();
+        DrawNESPiece(196 - 3*8, 128 - 2*8, nextType); 
+
+        // 7. LEVEL Box
+        DrawUIBox(192, 168, 48, 32);
+        DrawTextEx(font, "LEVEL", {196, 176}, 8, 0, WHITE);
+        char levelStr[8];
+        snprintf(levelStr, sizeof(levelStr), "%02d", game.getLevel());
+        DrawTextEx(font, levelStr, {208, 188}, 8, 0, WHITE);
+
+        // Game Over Overlay
+        if (game.getState() == GameState::GAME_OVER) {
+            DrawRectangle(96, 110, 80, 20, BLACK);
+            DrawTextEx(font, "GAME OVER", {100, 116}, 8, 0, RED);
+        }
+
+        EndTextureMode();
+
+        BeginDrawing();
+        ClearBackground(BLACK);
+        // Draw the 256x240 render texture scaled up to 768x720
+        DrawTexturePro(target.texture, 
+            { 0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height }, 
+            { 0.0f, 0.0f, 768.0f, 720.0f }, 
+            { 0.0f, 0.0f }, 0.0f, WHITE);
         EndDrawing();
     }
 
+    UnloadFont(font);
+    UnloadRenderTexture(target);
     CloseWindow();
     return 0;
 }

@@ -36,6 +36,7 @@ void Game::tick(Input input) {
 
 void Game::handleSpawning() {
     Tetromino nextType = m_nextPiece;
+    m_pieceStats[static_cast<int>(nextType)]++;
     m_nextPiece = m_randomizer.nextPiece();
     m_currentPiece = std::make_unique<Piece>(nextType);
 
