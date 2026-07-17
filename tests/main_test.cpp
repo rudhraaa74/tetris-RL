@@ -222,3 +222,52 @@ TEST_CASE("Game: Fuzz Testing (100k random inputs)", "[game]") {
     }
 }
 
+#include <thread>
+#include <atomic>
+#include <chrono>
+
+TEST_CASE("Game: Concurrent Isolation (Thread Safety)", "[game]") {
+    // Run 16 concurrent games, ensure they all execute independently without memory corruption
+    const int num_threads = 16;
+    std::vector<std::thread> threads;
+    std::atomic<int> completed{0};
+
+    for (int i = 0; i < num_threads; ++i) {
+        threads.emplace_back([i, &completed]() {
+            Game g(42 + i, 18);
+            std::mt19937 rng(42 + i);
+            std::uniform_int_distribution<int> dist(0, 5);
+            for (int f = 0; f < 10000; ++f) {
+                g.tick(static_cast<Input>(dist(rng)));
+            }
+            completed++;
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    REQUIRE(completed == num_threads);
+}
+
+TEST_CASE("Game: Headless Performance Benchmark", "[benchmark]") {
+    Game g(999, 18);
+    std::mt19937 rng(999);
+    std::uniform_int_distribution<int> dist(0, 5);
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    const int frames = 1000000;
+    for (int i = 0; i < frames; ++i) {
+        g.tick(static_cast<Input>(dist(rng)));
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    
+    double fps = (frames / (double)duration.count()) * 1000.0;
+    printf("Simulated 1,000,000 frames in %lld ms (%.2f FPS)\n", duration.count(), fps);
+    
+    // We expect at least 50,000 FPS for RL readiness
+    REQUIRE(fps > 50000.0);
+}
+
