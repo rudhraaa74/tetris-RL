@@ -179,11 +179,26 @@ int main() {
             else if (types[i] == Tetromino::I) px = 8;
             
             int py = 80 + i * 24;
-            DrawUIPiece(px, py, types[i]);
+            int py_piece = py;
+            if (types[i] == Tetromino::I) py_piece += 4; // Center the I piece vertically
+            
+            DrawUIPiece(px, py_piece, types[i]);
+            
+            // Get the piece color for the text
+            Color pieceColor = WHITE;
+            switch (types[i]) {
+                case Tetromino::T: pieceColor = {160, 32, 240, 255}; break;
+                case Tetromino::J: pieceColor = {0, 112, 236, 255}; break;
+                case Tetromino::Z: pieceColor = {216, 40, 0, 255}; break;
+                case Tetromino::O: pieceColor = {255, 200, 0, 255}; break;
+                case Tetromino::S: pieceColor = {0, 168, 0, 255}; break;
+                case Tetromino::L: pieceColor = {255, 120, 0, 255}; break;
+                case Tetromino::I: pieceColor = {0, 232, 216, 255}; break;
+            }
             
             char countStr[8];
             snprintf(countStr, sizeof(countStr), "%03d", stats[static_cast<int>(types[i])]);
-            DrawTextEx(font, countStr, {56, (float)py + 8}, 8, 0, RED);
+            DrawTextEx(font, countStr, {56, (float)py + 4}, 8, 0, pieceColor);
         }
 
         // 5. SCORE Box
