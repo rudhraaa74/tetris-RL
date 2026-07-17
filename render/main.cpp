@@ -168,7 +168,7 @@ int main() {
         DrawTextEx(font, linesText, {100, 16}, 8, 0, WHITE);
 
         // 4. STATISTICS Box
-        DrawUIBox(4, 56, 88, 180);
+        DrawUIBox(4, 56, 88, 160);
         DrawTextEx(font, "STATISTICS", {8, 64}, 8, 0, WHITE);
         
         auto stats = game.getPieceStats();
@@ -178,7 +178,7 @@ int main() {
             if (types[i] == Tetromino::O) px = 16;
             else if (types[i] == Tetromino::I) px = 8;
             
-            int py = 80 + i * 24;
+            int py = 76 + i * 20;
             int py_piece = py;
             if (types[i] == Tetromino::I) py_piece += 4; // Center the I piece vertically
             
