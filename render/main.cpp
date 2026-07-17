@@ -8,7 +8,7 @@ using namespace tetris;
 void DrawNESBlock(int x, int y, Tetromino t) {
     Color light = WHITE;
     Color fill, shadow;
-    if (t == Tetromino::T || t == Tetromino::J || t == Tetromino::O || t == Tetromino::I) {
+    if (t == Tetromino::J || t == Tetromino::O || t == Tetromino::I) {
         fill = {0, 112, 236, 255};
         shadow = {0, 0, 168, 255};
     } else {
@@ -144,18 +144,22 @@ int main() {
         DrawTextEx(font, linesText, {100, 16}, 8, 0, WHITE);
 
         // 4. STATISTICS Box
-        DrawUIBox(4, 60, 84, 156);
-        DrawTextEx(font, "STATISTICS", {8, 68}, 8, 0, WHITE);
+        DrawUIBox(4, 56, 88, 180);
+        DrawTextEx(font, "STATISTICS", {8, 64}, 8, 0, WHITE);
         
         auto stats = game.getPieceStats();
         Tetromino types[7] = { Tetromino::T, Tetromino::J, Tetromino::Z, Tetromino::O, Tetromino::S, Tetromino::L, Tetromino::I };
         for (int i=0; i<7; ++i) {
-            // I piece is 4 blocks wide, others are 3 or 2. We align them using local coords.
-            int px = (types[i] == Tetromino::I || types[i] == Tetromino::O) ? 12 : 16;
-            DrawUIPiece(px, 88 + i * 16, types[i]);
+            int px = 12;
+            if (types[i] == Tetromino::O) px = 16;
+            else if (types[i] == Tetromino::I) px = 8;
+            
+            int py = 80 + i * 24;
+            DrawUIPiece(px, py, types[i]);
+            
             char countStr[8];
             snprintf(countStr, sizeof(countStr), "%03d", stats[static_cast<int>(types[i])]);
-            DrawTextEx(font, countStr, {48, 92 + (float)i * 16}, 8, 0, RED);
+            DrawTextEx(font, countStr, {56, (float)py + 8}, 8, 0, RED);
         }
 
         // 5. SCORE Box
