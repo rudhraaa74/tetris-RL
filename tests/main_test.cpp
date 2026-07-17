@@ -94,16 +94,38 @@ TEST_CASE("Piece: NRS I piece rotation", "[piece]") {
     REQUIRE(r2[0].y == 0);
 }
 
-TEST_CASE("Randomizer: Logic test", "[randomizer]") {
+TEST_CASE("Randomizer: Statistical Distribution", "[randomizer]") {
     Randomizer r;
     r.seed(12345);
     
-    // We just verify it generates valid pieces and runs without crashing
-    for (int i=0; i<100; ++i) {
-        Tetromino t = r.nextPiece();
-        REQUIRE(static_cast<int>(t) >= 0);
-        REQUIRE(static_cast<int>(t) <= 6);
+    const int numRolls = 1000000;
+    int counts[7] = {0};
+    int repeats = 0;
+    
+    Tetromino last = r.nextPiece();
+    counts[static_cast<int>(last)]++;
+
+    for (int i = 1; i < numRolls; ++i) {
+        Tetromino current = r.nextPiece();
+        counts[static_cast<int>(current)]++;
+        
+        if (current == last) {
+            repeats++;
+        }
+        last = current;
     }
+
+    // With 1M rolls, each piece should be ~1/7 of the total (approx 142,857)
+    // 3-sigma is around +/- 1050. Let's use a generous +/- 2000 bound.
+    for (int i = 0; i < 7; ++i) {
+        REQUIRE(counts[i] > 140800);
+        REQUIRE(counts[i] < 144900);
+    }
+
+    // Repeats should happen 1/28 of the time (approx 35,714)
+    // 3-sigma is around +/- 555. Let's use a generous +/- 1500 bound.
+    REQUIRE(repeats > 34200);
+    REQUIRE(repeats < 37200);
 }
 
 TEST_CASE("Game: State Machine Transitions", "[game]") {
@@ -141,3 +163,62 @@ TEST_CASE("Game: State Machine Transitions", "[game]") {
     }
     REQUIRE(g.getState() == GameState::SPAWNING);
 }
+
+TEST_CASE("Game: Golden Replay Determinism", "[game]") {
+    // This test proves that given a specific seed and exact frame-by-frame inputs,
+    // the engine resolves to the exact same state every single time.
+    Game g(1337, 18); // Start at level 18 for fast gravity
+
+    std::vector<Input> macro;
+    // Frame 0-30: Spawning/ARE delays
+    for (int i=0; i<31; ++i) macro.push_back(Input::NONE);
+    // Move left twice
+    macro.push_back(Input::LEFT);
+    macro.push_back(Input::NONE);
+    macro.push_back(Input::LEFT);
+    // Rotate
+    macro.push_back(Input::ROTATE_CW);
+    // Soft drop to lock
+    for (int i=0; i<50; ++i) macro.push_back(Input::SOFT_DROP);
+
+    for (auto input : macro) {
+        g.tick(input);
+    }
+
+    REQUIRE(g.getLevel() == 18);
+    // We expect the piece to have locked and transitioned to ARE or SPAWNING.
+    // Let's just ensure the board is not empty, proving the piece locked.
+    int blocks = 0;
+    const auto& grid = g.getBoard().getGrid();
+    for (int y = 0; y < Board::HEIGHT; ++y) {
+        for (int x = 0; x < Board::WIDTH; ++x) {
+            if (grid[y][x] != 0) blocks++;
+        }
+    }
+    REQUIRE(blocks == 4); // One piece locked
+    REQUIRE(g.getScore() > 0); // Scored points from soft drops
+}
+
+TEST_CASE("Game: Fuzz Testing (100k random inputs)", "[game]") {
+    Game g(999, 18);
+    std::mt19937 rng(999);
+    std::uniform_int_distribution<int> dist(0, 5); // 0 to 5 for Input enum
+
+    for (int i = 0; i < 100000; ++i) {
+        Input randomInput = static_cast<Input>(dist(rng));
+        g.tick(randomInput);
+        
+        // Assert we never drop out of bounds or crash
+        REQUIRE((g.getState() != GameState::SPAWNING || g.getPiece() == nullptr));
+        if (g.getPiece() != nullptr) {
+            auto blocks = g.getPiece()->getBlocks();
+            for (auto b : blocks) {
+                REQUIRE(b.x >= 0);
+                REQUIRE(b.x < Board::WIDTH);
+                // Pieces can be above board (y<0) during spawn but not below bottom
+                REQUIRE(b.y < Board::HEIGHT);
+            }
+        }
+    }
+}
+

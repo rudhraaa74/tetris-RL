@@ -25,10 +25,22 @@ int main() {
     InitWindow(800, 800, "NES Tetris");
     SetTargetFPS(60);
 
-    Game game(42, 0);
+    int currentStartLevel = 0;
+    Game game(42, currentStartLevel);
 
     while (!WindowShouldClose()) {
         Input input = Input::NONE;
+        
+        // Change level and restart
+        if (IsKeyPressed(KEY_EQUAL)) {
+            currentStartLevel++;
+            game = Game(42, currentStartLevel);
+        } else if (IsKeyPressed(KEY_MINUS)) {
+            if (currentStartLevel > 0) {
+                currentStartLevel--;
+                game = Game(42, currentStartLevel);
+            }
+        }
         
         if (IsKeyPressed(KEY_X) || IsKeyPressed(KEY_UP)) input = Input::ROTATE_CW;
         else if (IsKeyPressed(KEY_Z)) input = Input::ROTATE_CCW;
@@ -69,12 +81,25 @@ int main() {
             }
         }
 
+        // Draw Next Piece
+        Tetromino nextType = game.getNextPiece();
+        DrawText("Next:", 400, 50, 20, BLACK);
+        Piece nextP(nextType);
+        auto nextBlocks = nextP.getBlocks();
+        for (auto pt : nextBlocks) {
+            // Shift it to display area (e.g. x=14, y=2)
+            Rectangle rect = { (float)(400 + (pt.x - 3) * CELL_SIZE), (float)(80 + pt.y * CELL_SIZE), (float)CELL_SIZE, (float)CELL_SIZE };
+            DrawRectangleRec(rect, getColor(nextType));
+            DrawRectangleLinesEx(rect, 1, BLACK);
+        }
+
         // Draw Stats
-        DrawText(TextFormat("Level: %d", game.getLevel()), 400, 100, 20, BLACK);
-        DrawText(TextFormat("Lines: %d", game.getLines()), 400, 130, 20, BLACK);
-        DrawText(TextFormat("Score: %d", game.getScore()), 400, 160, 20, BLACK);
+        DrawText(TextFormat("Level: %d", game.getLevel()), 400, 160, 20, BLACK);
+        DrawText(TextFormat("Lines: %d", game.getLines()), 400, 190, 20, BLACK);
+        DrawText(TextFormat("Score: %d", game.getScore()), 400, 220, 20, BLACK);
 
         const char* stateStr = "";
+
         switch (game.getState()) {
             case GameState::SPAWNING: stateStr = "SPAWNING"; break;
             case GameState::FALLING: stateStr = "FALLING"; break;
@@ -83,7 +108,15 @@ int main() {
             case GameState::ARE: stateStr = "ARE"; break;
             case GameState::GAME_OVER: stateStr = "GAME_OVER"; break;
         }
-        DrawText(TextFormat("State: %s", stateStr), 400, 190, 20, RED);
+        DrawText(TextFormat("State: %s", stateStr), 400, 250, 20, RED);
+        
+        DrawText("Controls:", 400, 310, 20, DARKGRAY);
+        DrawText("Left/Right: Move", 400, 340, 20, DARKGRAY);
+        DrawText("Up/X: Rotate CW", 400, 370, 20, DARKGRAY);
+        DrawText("Z: Rotate CCW", 400, 400, 20, DARKGRAY);
+        DrawText("Down: Soft Drop", 400, 430, 20, DARKGRAY);
+        DrawText("+ / - : Change Level & Restart", 400, 460, 20, BLUE);
+
 
         EndDrawing();
     }

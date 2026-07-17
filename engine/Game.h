@@ -41,6 +41,8 @@ public:
     
     const Board& getBoard() const { return m_board; }
     const Piece* getPiece() const { return m_currentPiece.get(); } // Returns nullptr during ARE/LINE_CLEARING
+    Tetromino getNextPiece() const { return m_nextPiece; }
+
 
 private:
     void handleSpawning();
@@ -55,6 +57,8 @@ private:
     Board m_board;
     Randomizer m_randomizer;
     std::unique_ptr<Piece> m_currentPiece;
+    Tetromino m_nextPiece;
+
 
     GameState m_state;
     int m_startLevel;

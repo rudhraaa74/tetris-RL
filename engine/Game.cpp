@@ -8,7 +8,9 @@ Game::Game(unsigned int seed, int startLevel)
       m_lastDasInput(Input::NONE), m_areTimer(0), m_lineClearTimer(0),
       m_lockHeight(0), m_softDropCounter(0), m_wasSoftDropping(false) {
     m_randomizer.seed(seed);
+    m_nextPiece = m_randomizer.nextPiece();
 }
+
 
 void Game::tick(Input input) {
     switch (m_state) {
@@ -33,8 +35,10 @@ void Game::tick(Input input) {
 }
 
 void Game::handleSpawning() {
-    Tetromino nextType = m_randomizer.nextPiece();
+    Tetromino nextType = m_nextPiece;
+    m_nextPiece = m_randomizer.nextPiece();
     m_currentPiece = std::make_unique<Piece>(nextType);
+
 
     if (!m_board.isValidPiece(*m_currentPiece)) {
         m_state = GameState::GAME_OVER;
