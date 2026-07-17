@@ -61,7 +61,7 @@ int main() {
     RenderTexture2D target = LoadRenderTexture(256, 240);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
-    Font font = LoadFontEx("assets/PressStart2P-Regular.ttf", 8, 0, 250);
+    Font font = LoadFontEx("../assets/PressStart2P-Regular.ttf", 8, 0, 250);
 
     int currentStartLevel = 0;
     Game game(42, currentStartLevel);
