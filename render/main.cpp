@@ -23,14 +23,34 @@ void DrawNESBlock(int x, int y, Tetromino t) {
     DrawRectangle(x+1, y+1, 5, 5, fill);
 }
 
-void DrawNESPiece(int x, int y, Tetromino type) {
-    Piece p(type);
-    auto blocks = p.getBlocks();
-    for (auto pt : blocks) {
-        // Offset by piece center
-        DrawNESBlock(x + pt.x * 8, y + pt.y * 8, type);
+void DrawUIPiece(int x, int y, Tetromino type) {
+    // Local coordinate offsets for each piece, perfectly aligned for the UI boxes
+    struct Pt { int x, y; };
+    const Pt* shape;
+    
+    const Pt shapeT[] = {{0,1}, {1,1}, {2,1}, {1,0}};
+    const Pt shapeJ[] = {{0,1}, {1,1}, {2,1}, {0,0}};
+    const Pt shapeZ[] = {{0,0}, {1,0}, {1,1}, {2,1}};
+    const Pt shapeO[] = {{0,0}, {1,0}, {0,1}, {1,1}};
+    const Pt shapeS[] = {{1,0}, {2,0}, {0,1}, {1,1}};
+    const Pt shapeL[] = {{0,1}, {1,1}, {2,1}, {2,0}};
+    const Pt shapeI[] = {{0,0}, {1,0}, {2,0}, {3,0}};
+    
+    switch (type) {
+        case Tetromino::T: shape = shapeT; break;
+        case Tetromino::J: shape = shapeJ; break;
+        case Tetromino::Z: shape = shapeZ; break;
+        case Tetromino::O: shape = shapeO; break;
+        case Tetromino::S: shape = shapeS; break;
+        case Tetromino::L: shape = shapeL; break;
+        case Tetromino::I: shape = shapeI; break;
+    }
+
+    for (int i=0; i<4; ++i) {
+        DrawNESBlock(x + shape[i].x * 8, y + shape[i].y * 8, type);
     }
 }
+
 
 void DrawUIBox(int x, int y, int w, int h) {
     DrawRectangle(x, y, w, h, BLACK);
@@ -130,7 +150,9 @@ int main() {
         auto stats = game.getPieceStats();
         Tetromino types[7] = { Tetromino::T, Tetromino::J, Tetromino::Z, Tetromino::O, Tetromino::S, Tetromino::L, Tetromino::I };
         for (int i=0; i<7; ++i) {
-            DrawNESPiece(16 - 3*8, 88 + i * 16 - 2*8, types[i]); // Offset piece internally uses 3,2 roughly. We want it positioned cleanly.
+            // I piece is 4 blocks wide, others are 3 or 2. We align them using local coords.
+            int px = (types[i] == Tetromino::I || types[i] == Tetromino::O) ? 12 : 16;
+            DrawUIPiece(px, 88 + i * 16, types[i]);
             char countStr[8];
             snprintf(countStr, sizeof(countStr), "%03d", stats[static_cast<int>(types[i])]);
             DrawTextEx(font, countStr, {48, 92 + (float)i * 16}, 8, 0, RED);
@@ -150,7 +172,8 @@ int main() {
         DrawTextEx(font, "NEXT", {196, 112}, 8, 0, WHITE);
         // Next piece is drawn centered
         Tetromino nextType = game.getNextPiece();
-        DrawNESPiece(196 - 3*8, 128 - 2*8, nextType); 
+        int nx = (nextType == Tetromino::I || nextType == Tetromino::O) ? 196 : 200;
+        DrawUIPiece(nx, 124, nextType); 
 
         // 7. LEVEL Box
         DrawUIBox(192, 168, 48, 32);
